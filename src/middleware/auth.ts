@@ -1,75 +1,50 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import prisma from '../lib/prisma.ts';
+import prisma from '../lib/prisma.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user: { id: string };
     }
   }
 }
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
-    let user = null;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader?.split(' ')[1];
 
-    // Check JWT
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded: any = jwt.verify(token, JWT_SECRET);
-        user = await prisma.user.findUnique({
-          where: { id: decoded.id },
-          include: { wallets: true }
-        });
-      } catch (err) {
-        // JWT invalid, check API key
-      }
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'توكن مفقود' });
     }
 
-    // Check API Key if no user yet
-    if (!user) {
-      const apiKey = req.headers['x-api-key'] as string;
-      if (apiKey) {
-        user = await prisma.user.findUnique({
-          where: { apiKey },
-          include: { wallets: true }
-        });
-
-        // Log API call if verified by API Key
-        if (user) {
-          await prisma.apiCall.create({
-            data: {
-              userId: user.id,
-              endpoint: req.originalUrl,
-              method: req.method,
-              status: 200 // Will be updated by interceptor or just assume success if it reaches here
-            }
-          });
-        }
-      }
-    }
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'UNAUTHORIZED',
-        message: 'ليس لديك صلاحية الوصول'
-      });
-    }
-
-    req.user = user;
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+    req.user = { id: decoded.id };
     next();
-  } catch (error) {
-    console.error('Auth error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: 'خطأ في المصادقة'
-    });
+  } catch (err) {
+    return res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'توكن غير صالح' });
+  }
+}
+
+export async function apiKeyMiddleware(req: Request, res: Response, next: NextFunction) {
+  try {
+    const apiKey = req.headers['x-api-key'] as string;
+
+    if (!apiKey) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'مفتاح API مفقود' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { apiKey } });
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'مفتاح API غير صالح' });
+    }
+
+    req.user = { id: user.id };
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, error: 'UNAUTHORIZED' });
   }
 }
