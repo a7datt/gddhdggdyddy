@@ -8,9 +8,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import rateLimit from 'express-rate-limit';
 
-import authRouter from './src/routes/auth.ts';
-import sessionsRouter from './src/routes/sessions.ts';
-import walletsRouter from './src/routes/wallets.ts';
+import authRouter from './src/routes/auth.js';
+import sessionsRouter from './src/routes/sessions.js';
+import walletsRouter from './src/routes/wallets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,8 +26,8 @@ app.use(express.json());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use('/api/', limiter);
 
@@ -45,7 +45,7 @@ app.get('/health', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Fallback to index.html for unknown routes (frontend)
-app.get('*', (req, res, next) => {
+app.get('*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
@@ -54,7 +54,7 @@ app.get('*', (req, res, next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`ShamCash API Service running on http://0.0.0.0:${PORT}`);
-  
+
   if (!process.env.SAM_SID) {
     console.warn('WARNING: SAM_SID is not set in environment variables. API calls to SAM will fail with 401.');
   }

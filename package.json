@@ -1,14 +1,15 @@
 {
   "name": "shamcash-api",
   "version": "1.0.0",
-  "main": "server.ts",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.ts",
+    "start": "node dist/server.js",
     "dev": "tsx server.ts",
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "db:setup": "prisma migrate dev --name init && prisma generate"
+    "db:setup": "prisma migrate dev --name init && prisma generate",
+    "db:generate": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
