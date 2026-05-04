@@ -10,8 +10,7 @@ function getHeaders() {
   if (!sid) {
     console.error('SAM_SID is missing from environment variables!');
   }
-  
-  // Clean the SID: if it's a full cookie string, extract just the value, or prepend sam_sid= if missing
+
   let cookieValue = sid;
   if (sid && !sid.includes('=')) {
     cookieValue = `sam_sid=${sid}`;
@@ -27,17 +26,100 @@ function getHeaders() {
   };
 }
 
+/**
+ * Normalize QR session response from SAM API into a consistent format.
+ * SAM API may return the QR payload in different shapes; we handle all known ones.
+ */
+function normalizeQRSession(data: any): {
+  id: string;
+  qrPayload: string;
+  status: string;
+  expiresAt: string;
+} {
+  console.log('[SAM API] Raw QR session response:', JSON.stringify(data, null, 2));
+
+  // Handle nested data wrapper
+  const session = data?.data ?? data?.session ?? data;
+
+  const id = session?.id ?? session?.sessionId ?? session?.session_id;
+  const status = session?.status ?? 'pending';
+
+  // ExpiresAt: try multiple possible field names
+  const expiresAt =
+    session?.expiresAt ??
+    session?.expires_at ??
+    session?.expiredAt ??
+    session?.expired_at ??
+    new Date(Date.now() + 3 * 60 * 1000).toISOString();
+
+  // QR Payload extraction
+  let qrPayload: string;
+
+  if (session?.qrPayload && typeof session.qrPayload === 'string') {
+    qrPayload = session.qrPayload;
+  } else if (session?.qr_payload && typeof session.qr_payload === 'string') {
+    qrPayload = session.qr_payload;
+  } else if (session?.qrCode && typeof session.qrCode === 'string') {
+    qrPayload = session.qrCode;
+  } else if (session?.qr_code && typeof session.qr_code === 'string') {
+    qrPayload = session.qr_code;
+  } else if (session?.sessionId || session?.publicKey) {
+    // Build the QR payload from structured fields (matches the format shamcash expects)
+    qrPayload = JSON.stringify({
+      sessionId: session.sessionId ?? id,
+      publicKey: session.publicKey ?? '',
+      infoDevice: session.infoDevice ?? {
+        deviceName: 'SAMAPI',
+        os: 'Linux',
+        browser: 'chrome'
+      }
+    });
+  } else {
+    qrPayload = JSON.stringify(session);
+  }
+
+  if (!id) {
+    console.error('[SAM API] Could not extract session ID from response:', data);
+    throw new Error('SAM API returned no session ID');
+  }
+
+  console.log('[SAM API] Normalized QR session:', { id, status, expiresAt, qrPayload });
+
+  return { id, qrPayload, status, expiresAt };
+}
+
+/**
+ * Normalize QR session status response.
+ */
+function normalizeQRStatus(data: any): {
+  status: string;
+  walletAccountId?: string;
+} {
+  const session = data?.data ?? data?.session ?? data;
+
+  const status = session?.status ?? 'pending';
+  const walletAccountId =
+    session?.walletAccountId ??
+    session?.wallet_account_id ??
+    session?.walletId ??
+    session?.wallet_id ??
+    undefined;
+
+  return { status, walletAccountId };
+}
+
 export async function createQRSession() {
   try {
-    const res = await axios.post(`${BASE}/qr-sessions`,
+    const res = await axios.post(
+      `${BASE}/qr-sessions`,
       { provider: 'shamcash' },
       { headers: getHeaders() }
     );
-    return res.data;
+    return normalizeQRSession(res.data);
   } catch (error: any) {
     if (error.response?.status === 401) {
       const apiError = error.response?.data;
-      console.error('SAM_API AUTH FAILURE:', apiError || error.message);
+      console.error('[SAM API] AUTH FAILURE:', apiError || error.message);
       throw new Error(apiError?.message || apiError?.error || 'UNAUTHENTICATED');
     }
     throw error;
@@ -45,10 +127,18 @@ export async function createQRSession() {
 }
 
 export async function checkQRSession(samSessionId: string) {
-  const res = await axios.get(`${BASE}/qr-sessions/${samSessionId}`,
-    { headers: getHeaders() }
-  );
-  return res.data;
+  try {
+    const res = await axios.get(
+      `${BASE}/qr-sessions/${samSessionId}`,
+      { headers: getHeaders() }
+    );
+    return normalizeQRStatus(res.data);
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      throw new Error('UNAUTHENTICATED');
+    }
+    throw error;
+  }
 }
 
 export async function getWallets() {
@@ -57,14 +147,16 @@ export async function getWallets() {
 }
 
 export async function getBalance(samWalletId: string) {
-  const res = await axios.get(`${BASE}/wallets/${samWalletId}/balance`,
+  const res = await axios.get(
+    `${BASE}/wallets/${samWalletId}/balance`,
     { headers: getHeaders() }
   );
   return res.data;
 }
 
 export async function getTransactions(samWalletId: string) {
-  const res = await axios.get(`${BASE}/wallets/${samWalletId}/transactions`,
+  const res = await axios.get(
+    `${BASE}/wallets/${samWalletId}/transactions`,
     { headers: getHeaders() }
   );
   return res.data;
