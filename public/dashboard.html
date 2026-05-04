@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShamCash API - لوحة التحكم</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #0a0a0a; color: #f1f5f9; }
+        .card { background-color: #111111; border: 1px solid #1f1f1f; }
+        .accent { color: #22c55e; }
+        .bg-accent { background-color: #22c55e; }
+        .input-field { background-color: #1a1a1a; border: 1px solid #1f1f1f; color: #f1f5f9; }
+        .transition-all { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-accent rounded-xl flex items-center justify-center text-black font-bold text-xl">S</div>
+                <h1 class="text-2xl font-bold">ShamCash <span class="accent">API</span></h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="userEmail" class="text-slate-400 text-sm italic"></span>
+                <button id="logoutBtn" class="p-2 px-4 border border-red-500/30 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all text-sm">تسجيل الخروج</button>
+            </div>
+        </header>
+
+        <!-- Stats / Action Buttons -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <a href="/add-wallet.html" class="card p-6 rounded-2xl hover:border-green-500/50 transition-all group flex flex-col justify-between h-32">
+                <div class="flex justify-between items-start">
+                    <div class="p-2 bg-green-500/10 rounded-lg accent">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    </div>
+                </div>
+                <div class="font-bold text-lg">إضافة محفظة</div>
+            </a>
+            
+            <button id="showKeyBtn" class="card p-6 rounded-2xl hover:border-blue-500/50 transition-all group flex flex-col justify-between h-32 text-right">
+                <div class="flex justify-between items-start">
+                    <div class="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                    </div>
+                </div>
+                <div class="font-bold text-lg">مفتاح API</div>
+            </button>
+
+            <a href="/docs.html" class="card p-6 rounded-2xl hover:border-purple-500/50 transition-all group flex flex-col justify-between h-32">
+                <div class="flex justify-between items-start">
+                    <div class="p-2 bg-purple-500/10 rounded-lg text-purple-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    </div>
+                </div>
+                <div class="font-bold text-lg">التوثيق</div>
+            </a>
+        </div>
+
+        <!-- Wallets Section -->
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold">محافظك</h2>
+            <button id="refreshAllBtn" class="text-accent text-sm hover:underline">تحديث الكل</button>
+        </div>
+
+        <div id="walletsContainer" class="space-y-4">
+            <!-- Shimmer loading -->
+            <div class="animate-pulse space-y-4">
+                <div class="card h-24 rounded-2xl"></div>
+                <div class="card h-24 rounded-2xl"></div>
+            </div>
+        </div>
+
+        <!-- Transactions Section (Hidden until wallet selected) -->
+        <div id="transactionsSection" class="mt-8 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">المعاملات الأخيرة</h2>
+                <button id="closeTransactions" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <div class="card rounded-2xl overflow-hidden overflow-x-auto">
+                <table class="w-full text-right">
+                    <thead class="bg-gray-800/50">
+                        <tr>
+                            <th class="p-4 text-sm font-medium text-slate-400">التاريخ</th>
+                            <th class="p-4 text-sm font-medium text-slate-400">النوع</th>
+                            <th class="p-4 text-sm font-medium text-slate-400">المبلغ</th>
+                            <th class="p-4 text-sm font-medium text-slate-400">الوصف</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsBody">
+                        <!-- Content via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="keyModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
+        <div class="card w-full max-w-md p-6 rounded-3xl shadow-2xl relative">
+            <button id="closeKeyModal" class="absolute top-4 left-4 text-slate-400 hover:text-white">&times;</button>
+            <h3 class="text-xl font-bold mb-6 text-center">مفتاح API الخاص بك</h3>
+            <div class="space-y-4">
+                <p class="text-sm text-slate-400">استخدم هذا المفتاح للمصادقة في طلبات API عبر ترويسة <code class="bg-gray-800 px-1 rounded">X-Api-Key</code></p>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="apiKeyInput" readonly class="flex-1 input-field p-3 rounded-xl border border-dashed border-gray-700 font-mono text-sm">
+                    <button id="copyKeyBtn" class="p-3 bg-accent text-black rounded-xl font-bold flex items-center justify-center min-w-[80px]">نسخ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-xs p-4 rounded-xl hidden transition-all transform translate-y-20 z-[60]">
+        <p id="toastMsg" class="text-center font-medium"></p>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/index.html';
+
+        const walletsContainer = document.getElementById('walletsContainer');
+        const transactionsSection = document.getElementById('transactionsSection');
+        const transactionsBody = document.getElementById('transactionsBody');
+        const showKeyBtn = document.getElementById('showKeyBtn');
+        const keyModal = document.getElementById('keyModal');
+        const closeKeyModal = document.getElementById('closeKeyModal');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const copyKeyBtn = document.getElementById('copyKeyBtn');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+
+        let currentUser = null;
+
+        function showToast(msg, isError = true) {
+            toastMsg.innerText = msg;
+            toast.className = `fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-xs p-4 rounded-xl shadow-2xl z-[60] transition-all transform ${isError ? 'bg-red-500 text-white' : 'bg-green-500 text-black'}`;
+            toast.classList.remove('hidden', 'translate-y-20');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        async function fetchUser() {
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('userEmail').innerText = currentUser.email;
+                    apiKeyInput.value = currentUser.apiKey;
+                    localStorage.setItem('apiKey', currentUser.apiKey);
+                } else {
+                    localStorage.removeItem('token');
+                    window.location.href = '/index.html';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchWallets() {
+            try {
+                const res = await fetch('/api/wallets', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderWallets(data.wallets);
+                }
+            } catch (err) {
+                showToast('خطأ في تحميل المحافظ');
+            }
+        }
+
+        function renderWallets(wallets) {
+            if (wallets.length === 0) {
+                walletsContainer.innerHTML = '<div class="card p-8 rounded-2xl text-center text-slate-500">لا توجد محافظ مرتبطة حالياً</div>';
+                return;
+            }
+
+            walletsContainer.innerHTML = wallets.map(w => `
+                <div class="card p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-gray-700">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center accent">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold flex items-center gap-2">
+                                شام كاش
+                                <span class="bg-green-500/20 text-green-500 text-[10px] px-2 py-0.5 rounded-full">مرتبط ✓</span>
+                            </div>
+                            <div class="text-2xl font-bold mt-1">${w.balance.toLocaleString()} <span class="text-sm font-medium text-slate-400">${w.currency}</span></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="updateBalance('${w.id}')" class="flex-1 md:flex-none py-2 px-4 bg-gray-800 hover:bg-gray-700 text-sm rounded-xl transition-all">تحديث الرصيد</button>
+                        <button onclick="showTransactions('${w.id}')" class="flex-1 md:flex-none py-2 px-4 bg-accent text-black font-bold text-sm rounded-xl transition-all">المعاملات</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateBalance(walletId) {
+            try {
+                const res = await fetch(`/api/wallets/${walletId}/balance`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('تم تحديث الرصيد بنجاح', false);
+                    fetchWallets();
+                }
+            } catch (err) {
+                showToast('خطأ في الاتصال بالسيرفر');
+            }
+        }
+
+        async function showTransactions(walletId) {
+            transactionsSection.classList.remove('hidden');
+            transactionsBody.innerHTML = '<tr><td colspan="4" class="p-8 text-center"><div class="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mx-auto"></div></td></tr>';
+            
+            // Scroll to transactions
+            transactionsSection.scrollIntoView({ behavior: 'smooth' });
+
+            try {
+                const res = await fetch(`/api/wallets/${walletId}/transactions`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.transactions.length === 0) {
+                        transactionsBody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500">لا توجد معاملات بعد</td></tr>';
+                    } else {
+                        transactionsBody.innerHTML = data.transactions.map(t => `
+                            <tr class="border-t border-gray-800 hover:bg-white/[0.02] transition-colors">
+                                <td class="p-4 text-sm text-slate-400">${new Date(t.date).toLocaleString('ar-SY')}</td>
+                                <td class="p-4">
+                                    <span class="${t.type === 'credit' ? 'text-green-500' : 'text-red-500'} font-bold">
+                                        ${t.type === 'credit' ? 'إيداع' : 'سحب'}
+                                    </span>
+                                </td>
+                                <td class="p-4 font-bold ${t.type === 'credit' ? 'text-green-500' : 'text-red-500'}">
+                                    ${t.type === 'credit' ? '+' : '-'}${t.amount.toLocaleString()} 
+                                    <span class="text-[10px] text-slate-500">${t.currency}</span>
+                                </td>
+                                <td class="p-4 text-sm text-slate-300 max-w-[200px] truncate">${t.description || '-'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (err) {
+                showToast('خطأ في تحميل المعاملات');
+            }
+        }
+
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('apiKey');
+            window.location.href = '/index.html';
+        };
+
+        showKeyBtn.onclick = () => {
+            keyModal.classList.remove('hidden');
+            keyModal.classList.add('flex');
+        };
+
+        closeKeyModal.onclick = () => {
+            keyModal.classList.add('hidden');
+            keyModal.classList.remove('flex');
+        };
+
+        copyKeyBtn.onclick = () => {
+            apiKeyInput.select();
+            document.execCommand('copy');
+            const originalText = copyKeyBtn.innerText;
+            copyKeyBtn.innerText = 'تم!';
+            setTimeout(() => copyKeyBtn.innerText = originalText, 2000);
+        };
+
+        document.getElementById('closeTransactions').onclick = () => {
+            transactionsSection.classList.add('hidden');
+        };
+
+        document.getElementById('refreshAllBtn').onclick = fetchWallets;
+
+        // Init
+        fetchUser();
+        fetchWallets();
+    </script>
+</body>
+</html>

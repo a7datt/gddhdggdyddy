@@ -1,0 +1,6 @@
+{
+  "name": "ShamCash API Service",
+  "description": "A powerful API service for ShamCash wallet integration, featuring QR linking, balance tracking, and detailed transaction logs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

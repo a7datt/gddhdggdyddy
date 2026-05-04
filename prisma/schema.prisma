@@ -1,0 +1,66 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  apiKey    String   @unique @default(uuid())
+  createdAt DateTime @default(now())
+  wallets   Wallet[]
+  sessions  QRSession[]
+  apiCalls  ApiCall[]
+}
+
+model Wallet {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  samWalletId   String
+  provider      String   @default("shamcash")
+  balance       Float    @default(0)
+  currency      String   @default("SYP")
+  linkedAt      DateTime @default(now())
+  isActive      Boolean  @default(true)
+  transactions  Transaction[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id])
+  type        String
+  amount      Float
+  currency    String   @default("SYP")
+  description String
+  date        DateTime
+  createdAt   DateTime @default(now())
+}
+
+model QRSession {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  samSessionId String   @unique
+  qrPayload    String
+  status       String   @default("pending")
+  samWalletId  String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model ApiCall {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String
+  method    String
+  status    Int
+  createdAt DateTime @default(now())
+}

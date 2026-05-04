@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShamCash API - دخول</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #0a0a0a; color: #f1f5f9; }
+        .card { background-color: #111111; border: 1px solid #1f1f1f; }
+        .accent { color: #22c55e; }
+        .bg-accent { background-color: #22c55e; }
+        .input-field { background-color: #1a1a1a; border: 1px solid #1f1f1f; color: #f1f5f9; }
+        .transition-all { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold mb-2">ShamCash <span class="accent">API</span></h1>
+            <p class="text-slate-400">بوابتك لربط خدمات شام كاش برمجياً</p>
+        </div>
+
+        <div class="card p-6 rounded-2xl shadow-xl">
+            <!-- Tabs -->
+            <div class="flex mb-6 border-b border-gray-800">
+                <button id="loginTab" class="flex-1 py-3 text-center font-bold border-b-2 border-green-500 transition-all">تسجيل الدخول</button>
+                <button id="registerTab" class="flex-1 py-3 text-center font-medium text-slate-400 border-b-2 border-transparent hover:text-white transition-all">إنشاء حساب</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm mb-1 text-slate-400">البريد الإلكتروني</label>
+                    <input type="email" id="loginEmail" required class="w-full p-3 rounded-xl input-field focus:ring-2 focus:ring-green-500 outline-none" placeholder="name@example.com">
+                </div>
+                <div>
+                    <label class="block text-sm mb-1 text-slate-400">كلمة المرور</label>
+                    <input type="password" id="loginPassword" required class="w-full p-3 rounded-xl input-field focus:ring-2 focus:ring-green-500 outline-none" placeholder="••••••••">
+                </div>
+                <button type="submit" id="loginBtn" class="w-full py-3 bg-accent text-black font-bold rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center">
+                    <span id="loginText">تسجيل الدخول</span>
+                    <div id="loginSpinner" class="hidden w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin ml-2"></div>
+                </button>
+            </form>
+
+            <!-- Register Form (Hidden) -->
+            <form id="registerForm" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm mb-1 text-slate-400">البريد الإلكتروني</label>
+                    <input type="email" id="registerEmail" required class="w-full p-3 rounded-xl input-field focus:ring-2 focus:ring-green-500 outline-none" placeholder="name@example.com">
+                </div>
+                <div>
+                    <label class="block text-sm mb-1 text-slate-400">كلمة المرور</label>
+                    <input type="password" id="registerPassword" required class="w-full p-3 rounded-xl input-field focus:ring-2 focus:ring-green-500 outline-none" placeholder="••••••••">
+                </div>
+                <div>
+                    <label class="block text-sm mb-1 text-slate-400">تأكيد كلمة المرور</label>
+                    <input type="password" id="registerConfirm" required class="w-full p-3 rounded-xl input-field focus:ring-2 focus:ring-green-500 outline-none" placeholder="••••••••">
+                </div>
+                <button type="submit" id="registerBtn" class="w-full py-3 bg-accent text-black font-bold rounded-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center">
+                    <span id="registerText">إنشاء حساب</span>
+                    <div id="registerSpinner" class="hidden w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin ml-2"></div>
+                </button>
+            </form>
+        </div>
+
+        <div id="toast" class="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-xs p-4 rounded-xl hidden transition-all transform translate-y-20">
+            <p id="toastMsg" class="text-center font-medium"></p>
+        </div>
+    </div>
+
+    <script>
+        const loginTab = document.getElementById('loginTab');
+        const registerTab = document.getElementById('registerTab');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+
+        // Check if already logged in
+        if (localStorage.getItem('token')) {
+            window.location.href = '/dashboard.html';
+        }
+
+        function showToast(msg, isError = true) {
+            toastMsg.innerText = msg;
+            toast.className = `fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-xs p-4 rounded-xl shadow-2xl z-50 transition-all transform ${isError ? 'bg-red-500 text-white' : 'bg-green-500 text-black'}`;
+            toast.classList.remove('hidden', 'translate-y-20');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        loginTab.onclick = () => {
+            loginTab.className = "flex-1 py-3 text-center font-bold border-b-2 border-green-500 transition-all";
+            registerTab.className = "flex-1 py-3 text-center font-medium text-slate-400 border-b-2 border-transparent hover:text-white transition-all";
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+        };
+
+        registerTab.onclick = () => {
+            registerTab.className = "flex-1 py-3 text-center font-bold border-b-2 border-green-500 transition-all";
+            loginTab.className = "flex-1 py-3 text-center font-medium text-slate-400 border-b-2 border-transparent hover:text-white transition-all";
+            registerForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        };
+
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            const text = document.getElementById('loginText');
+            const spinner = document.getElementById('loginSpinner');
+
+            text.classList.add('hidden');
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = '/dashboard.html';
+                } else {
+                    showToast(data.message || 'خطأ في تسجيل الدخول');
+                }
+            } catch (err) {
+                showToast('حدث خطأ في الاتصال بالسيرفر');
+            } finally {
+                text.classList.remove('hidden');
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        };
+
+        registerForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerConfirm').value;
+            const btn = document.getElementById('registerBtn');
+            const text = document.getElementById('registerText');
+            const spinner = document.getElementById('registerSpinner');
+
+            if (password !== confirm) {
+                showToast('كلمات المرور غير متطابقة');
+                return;
+            }
+
+            text.classList.add('hidden');
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = '/dashboard.html';
+                } else {
+                    showToast(data.message || 'خطأ في إنشاء الحساب');
+                }
+            } catch (err) {
+                showToast('حدث خطأ في الاتصال بالسيرفر');
+            } finally {
+                text.classList.remove('hidden');
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
