@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from '../lib/prisma.js';
-import { authMiddleware } from '../middleware/auth.js';
+import prisma from '../lib/prisma.ts';
+import { authMiddleware } from '../middleware/auth.ts';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
@@ -23,7 +23,10 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword }
+      data: {
+        email,
+        password: hashedPassword
+      }
     });
 
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '30d' });
@@ -31,7 +34,11 @@ router.post('/register', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user.id, email: user.email, apiKey: user.apiKey }
+      user: {
+        id: user.id,
+        email: user.email,
+        apiKey: user.apiKey
+      }
     });
   } catch (error) {
     console.error(error);
@@ -59,7 +66,11 @@ router.post('/login', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user.id, email: user.email, apiKey: user.apiKey }
+      user: {
+        id: user.id,
+        email: user.email,
+        apiKey: user.apiKey
+      }
     });
   } catch (error) {
     console.error(error);
@@ -72,7 +83,11 @@ router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { _count: { select: { wallets: true } } }
+      include: {
+        _count: {
+          select: { wallets: true }
+        }
+      }
     });
 
     res.json({
@@ -98,7 +113,10 @@ router.get('/usage', authMiddleware, async (req, res) => {
       take: 20
     });
 
-    res.json({ success: true, logs });
+    res.json({
+      success: true,
+      logs
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
