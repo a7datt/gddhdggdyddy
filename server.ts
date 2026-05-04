@@ -1,7 +1,9 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import rateLimit from 'express-rate-limit';
@@ -9,8 +11,6 @@ import rateLimit from 'express-rate-limit';
 import authRouter from './src/routes/auth.ts';
 import sessionsRouter from './src/routes/sessions.ts';
 import walletsRouter from './src/routes/wallets.ts';
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

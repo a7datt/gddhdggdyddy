@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.ts';
 import { authMiddleware } from '../middleware/auth.ts';
 import * as samapi from '../services/samapi.ts';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/sessions/create
 router.post('/create', authMiddleware, async (req, res) => {

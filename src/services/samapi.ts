@@ -3,14 +3,22 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const BASE = process.env.SAM_API_BASE;
+const BASE = process.env.SAM_API_BASE || 'https://www.sam-api.pro/api';
 
 function getHeaders() {
   const sid = (process.env.SAM_SID || '').trim();
-  // Ensure we don't double up on the sam_sid prefix if the user pasted the whole string
-  const cookieValue = sid.startsWith('sam_sid=') ? sid : `sam_sid=${sid}`;
+  if (!sid) {
+    console.error('SAM_SID is missing from environment variables!');
+  }
+  
+  // Clean the SID: if it's a full cookie string, extract just the value, or prepend sam_sid= if missing
+  let cookieValue = sid;
+  if (sid && !sid.includes('=')) {
+    cookieValue = `sam_sid=${sid}`;
+  }
 
   return {
+    'Accept': 'application/json, text/plain, */*',
     'Content-Type': 'application/json',
     'Cookie': cookieValue,
     'Origin': 'https://www.sam-api.pro',
