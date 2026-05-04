@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import prisma from '../lib/prisma.ts';
-import { authMiddleware } from '../middleware/auth.ts';
-import * as samapi from '../services/samapi.ts';
+import prisma from '../lib/prisma.js';
+import { authMiddleware } from '../middleware/auth.js';
+import * as samapi from '../services/samapi.js';
 
 const router = Router();
 
@@ -33,14 +33,14 @@ router.post('/create', authMiddleware, async (req, res) => {
   } catch (error: any) {
     const isAuthError = error.message === 'UNAUTHENTICATED' || error.response?.status === 401;
     const apiMessage = error.response?.data?.message || error.response?.data?.error || error.message;
-    
+
     console.error('Session create error:', apiMessage);
-    
+
     if (isAuthError) {
-      return res.status(502).json({ 
-        success: false, 
-        error: 'SAM_AUTH_REQUIRED', 
-        message: `خطأ في المصادقة مع المزود: ${apiMessage}. يرجى تحديث SAM_SID في الإعدادات.` 
+      return res.status(502).json({
+        success: false,
+        error: 'SAM_AUTH_REQUIRED',
+        message: `خطأ في المصادقة مع المزود: ${apiMessage}. يرجى تحديث SAM_SID في الإعدادات.`
       });
     }
 
@@ -76,13 +76,11 @@ router.get('/:id/status', authMiddleware, async (req, res) => {
     });
 
     if (samStatus.status === 'linked' && samStatus.walletAccountId) {
-      // Check if wallet already exists
       let wallet = await prisma.wallet.findFirst({
         where: { samWalletId: samStatus.walletAccountId }
       });
 
       if (!wallet) {
-        // Fetch balance
         const balanceData = await samapi.getBalance(samStatus.walletAccountId);
 
         wallet = await prisma.wallet.create({
@@ -94,7 +92,6 @@ router.get('/:id/status', authMiddleware, async (req, res) => {
           }
         });
 
-        // Initial transactions fetch
         try {
           const transactionsData = await samapi.getTransactions(samStatus.walletAccountId);
           if (transactionsData && Array.isArray(transactionsData)) {

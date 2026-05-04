@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import prisma from '../lib/prisma.ts';
-import { authMiddleware } from '../middleware/auth.ts';
-import * as samapi from '../services/samapi.ts';
+import prisma from '../lib/prisma.js';
+import { authMiddleware } from '../middleware/auth.js';
+import * as samapi from '../services/samapi.js';
 
 const router = Router();
 
